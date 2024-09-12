@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'justBlogIt_api',
+    'django_extensions',
     #'atatus.contrib.django',
     'rest_framework',
     'corsheaders',
@@ -58,7 +61,10 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-
+"http://192.168.239.48:5173",
+"http://172.31.144.1:5173",
+"http://localhost:5173",
+"http://192.168.82.48:5173"
 ]
 CORS_ALLOW_CREDENTIALS = False
 
@@ -81,7 +87,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'justBlogIt_backend.wsgi.application'
-
+ASGI_APPLICATION = "justBlogIt_backend.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -179,12 +185,20 @@ EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'geraldrolland123456@gmail.com'
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
