@@ -20,12 +20,15 @@ class FormatDate:
                             return "{} mins ago".format(datetime.now().minute - date.minute)
                     else:
                         if datetime.now().hour - date.hour == 1:
+                            print(datetime.now().hour - date.hour)
                             return "1 hr ago"
                         return "{} hrs ago".format(datetime.now().hour - date.hour)
 
                 else:
                     if datetime.now().day - date.day == 1:
+                        print("this is the day", datetime.now().day - date.day)
                         return "1 day ago"
+                    print("this is the day", datetime.now().day - date.day)
                     return "{} days ago".format(datetime.now().day - date.day)
             else:
                 if datetime.now().month - date.month == 1:

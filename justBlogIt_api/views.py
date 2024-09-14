@@ -33,6 +33,7 @@ from .formatdate import FormatDate
 class UserViewSet(viewsets.ViewSet):
     @action(detail=False, permission_classes=[AllowAny], methods=["post"])
     def create_user(self, request):
+        print(request.data)
         serializer = CustomUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -42,13 +43,21 @@ class UserViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def login_user(self, request):
         user = get_object_or_404(CustomUser, email=request.data.get("email"))
+        print("error")
+        print(request.data.get("password"))
+        print(request.data.get("email"))
+        print(user.check_password(request.data.get("password")))
         if user.check_password(request.data.get("password")):
             refresh = RefreshToken.for_user(user=user)
             print(user.email)
             return Response({
                 "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
                 "username": user.username,
                 "profile_image": user.profile_image,
+                "bio": user.bio,
+                "email": user.email,
                 "refresh": str(refresh),
                 "access": str(refresh.access_token)
             }, status=status.HTTP_200_OK)
@@ -183,7 +192,8 @@ class UserViewSet(viewsets.ViewSet):
     def get_notifications(self, request, format=None):
         user = get_object_or_404(CustomUser, email=request.user.email)
         notifications = user.receipient.order_by("-createdAt")
-        if notifications:
+        if notifications != []:
+            print(notifications)
             notifications_list = []
             for notify in notifications:
                 if notify.user.id == user.id:
@@ -205,6 +215,8 @@ class UserViewSet(viewsets.ViewSet):
                     "receipient": user.id
                 }
                 notifications_list.append(not_obj)
+            if notifications_list == []:
+                return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
             return Response(notifications_list, status=status.HTTP_200_OK)
         return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
     
@@ -489,6 +501,7 @@ class CommentViewSet(viewsets.ViewSet):
     def get_replies(self, request, pk=None):
         comment = get_object_or_404(Comment, commentId=pk)
         replies = comment.replies.order_by("-createdAt")
+        print("this is empty", replies)
         if replies:
             reply_list =[]
             for reply in replies:
@@ -502,7 +515,8 @@ class CommentViewSet(viewsets.ViewSet):
                     "user": {
                         "id": reply.user.id,
                         "username": reply.user.username,
-                        "image": reply.user.profile_image if reply.user.profile_image else None
+                        "image": reply.user.profile_image if reply.user.profile_image else None,
+                        "bio": reply.user.bio,
                     }
                 }
                 reply_list.append(reply_obj)
@@ -515,12 +529,11 @@ class CommentViewSet(viewsets.ViewSet):
         comment = get_object_or_404(Comment, commentId=pk)
         other_user = comment.user
         reply = {
-            "commentText": request.data.get("text"),
-            "user": user.id
+            "commentText": request.data.get("commentText"),
+            "user": user,
         }
 
-        reply = CommentSerializer(data=reply)
-        reply.is_valid(raise_exception=True)
+        reply = Comment.objects.create(**reply)
         comment.replyCount += 1
         comment.replies.add(reply)
         comment.save()
@@ -528,21 +541,19 @@ class CommentViewSet(viewsets.ViewSet):
 
         notification = {
             "notificationType": "Reply",
-            "user": user.id,
-            "receipient": other_user.id,
+            "user": user,
+            "receipient": other_user,
             "commentText": comment.commentText
         }
 
-        serializer = NotificationSerializer(data=notification)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
+        notification = Notification.objects.create(**notification)
+        notification.save()
         async_to_sync(channel_layer.group_send)("broadcastNotification", {
             "type": "handle.notification",
             "message": {
-                "notificationId": serializer.data.get("notificationId"),
-                "notificationType": notification["notificationType"],
-                "createdAt": serializer.data.get("createdAt"),
+                "notificationId": str(notification.notificationId),
+                "notificationType": notification.notificationType,
+                "createdAt": str(notification.createdAt),
                 "user": {
                     "id": user.id,
                     "username": user.username,
@@ -555,6 +566,53 @@ class CommentViewSet(viewsets.ViewSet):
                 "postTitle": None,
             }
         })
-        return  Response(reply.data, status=status.HTTP_200_OK)
+        date = FormatDate.format_date(reply.createdAt)
+        reply = {
+            "commentId": str(reply.commentId),
+            "createdAt": date,
+            "commentText": reply.commentText,
+            "likes": reply.likes,
+            "replyCount": reply.replyCount,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "image": user.profile_image,
+                "bio": user.bio,
+            }
+        }
+        return Response(reply, status=status.HTTP_200_OK)
     
     
+    @action(detail=True, permission_classes=[IsAuthenticated], authentication_classes=[JWTAuthentication, SessionAuthentication, BasicAuthentication], methods=["get"])
+    def like_comment(self, request, pk=None):
+        comment = get_object_or_404(Comment, commentId=pk)
+        comment.likes += 1
+        other_user = comment.user
+        user = get_object_or_404(CustomUser, email=request.user.email)
+        comment.save()
+        notification = {
+            "notificationType": "Like",
+            "commentText": comment.commentText,
+            "user": user,
+            "receipient": other_user,
+        }
+        notification = Notification.objects.create(**notification)
+        notification.save()
+        return Response({"detail": "liked sucessfully"}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, permission_classes=[IsAuthenticated], authentication_classes=[JWTAuthentication, SessionAuthentication, BasicAuthentication], methods=["get"])
+    def unlike_comment(self, request, pk=None):
+        comment = get_object_or_404(Comment, commentId=pk)
+        comment.likes -= 1
+        other_user = comment.user
+        user = get_object_or_404(CustomUser, email=request.user.email)
+        comment.save()
+        notification = {
+            "notificationType": "Unlike",
+            "commentText": comment.commentText,
+            "user": user,
+            "receipient": other_user,
+        }
+        notification = Notification.objects.create(**notification)
+        notification.save()
+        return Response({"detail": "liked sucessfully"}, status=status.HTTP_200_OK)
