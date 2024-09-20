@@ -30,7 +30,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=64, null=False)
     last_name = models.CharField(max_length=64, null=False)
     post_count = models.IntegerField(default=0)
-    profile_image = models.TextField(null=False, blank=False)
+    profile_image = models.TextField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "first_name", "last_name", "bio"]
