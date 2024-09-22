@@ -28,8 +28,12 @@ class FormatDate:
                     if datetime.now().day - date.day == 1:
                         print("this is the day", datetime.now().day - date.day)
                         return "1 day ago"
-                    print("this is the day", datetime.now().day - date.day)
-                    return "{} days ago".format(datetime.now().day - date.day)
+                    elif datetime.now().day - date.day >= 7 and datetime.now().day - date.day < 14:
+                        return "1 wk ago"
+                    elif datetime.now().day - date.day >= 14 and datetime.now().day - date.day < 21:
+                        return "2 wks ago"
+                    elif datetime.now().day - date.day >= 21 and datetime.now().day - date.day < 28:
+                        return "3 wks ago"
             else:
                 if datetime.now().month - date.month == 1:
                     return "1 mon ago"
