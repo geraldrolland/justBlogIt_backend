@@ -22,6 +22,11 @@ class NotificationTypeCategory(models.TextChoices):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    """
+    Custom user model that extends AbstractBaseUser and PermissionsMixin.
+    This model represents the user in the system with extended fields for 
+    social media-like functionality (followers, following, profile, etc.).
+    """
     username = models.CharField(max_length=64, null=False, default="")
     email = models.EmailField(_("email address"), unique=True)
     is_staff = models.BooleanField(default=False)
