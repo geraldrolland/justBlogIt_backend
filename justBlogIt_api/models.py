@@ -51,6 +51,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 class Post(models.Model):
+    """
+    Model representing a post created by a user. Each post includes a title, text content,
+    an optional image, and tracks metadata such as the number of likes and comments.
+    """
     postId = models.UUIDField(null=False, primary_key=True, editable=False, default=uuid.uuid4)
     createdAt = models.DateTimeField(default=datetime.now, editable=False)
     postTitle = models.CharField(null=False, blank=False, max_length=120)
