@@ -6,7 +6,12 @@ from datetime import timezone, datetime
 from .customusermanager import CustomUserManager
 import uuid
 
+
 class NotificationTypeCategory(models.TextChoices):
+    """
+    Enum-like class for defining the types of notifications.
+    Used in the Notification model to categorize notifications.
+    """
     FOLLOW = "follow", "Follow",
     UNFOLLOW = "unfollow", "Unfollow"
     COMMENT = "Comment", "comment"
